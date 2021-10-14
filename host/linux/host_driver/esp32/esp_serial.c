@@ -31,9 +31,10 @@
 #include "esp_rb.h"
 #include "esp_api.h"
 
-#define ESP_SERIAL_MAJOR	221
-#define ESP_SERIAL_MINOR_MAX	2
-#define ESP_RX_RB_SIZE	4096
+#define ESP_SERIAL_MAJOR      221
+#define ESP_SERIAL_MINOR_MAX  2
+#define ESP_RX_RB_SIZE        4096
+#define ESP_SERIAL_MAX_TX     4096
 
 //#define ESP_SERIAL_TEST
 
@@ -49,7 +50,7 @@ static struct esp_serial_devs {
 static int esp_serial_read(struct file *file, char __user *user_buffer, size_t size, loff_t *offset)
 {
 	struct esp_serial_devs *dev = NULL;
-	size_t ret_size = 0;
+	int ret_size = 0;
 	dev = (struct esp_serial_devs *) file->private_data;
 	ret_size = esp_rb_read_by_user(&dev->rb, user_buffer, size, !(file->f_flags & O_NONBLOCK));
 	if (ret_size == 0) {
@@ -148,8 +149,10 @@ const struct file_operations esp_serial_fops = {
 
 int esp_serial_data_received(int dev_index, const char *data, size_t len)
 {
-	int ret = 0;
-	size_t ret_len = 0;
+	int ret = 0, ret_len = 0;
+	if (dev_index >= ESP_SERIAL_MINOR_MAX) {
+		return -EINVAL;
+	}
 
 	while (ret_len != len) {
 		ret = esp_rb_write_by_kernel(&devs[dev_index].rb,
@@ -158,6 +161,9 @@ int esp_serial_data_received(int dev_index, const char *data, size_t len)
 			break;
 		}
 		ret_len += ret;
+	}
+	if (ret <= 0) {
+		return ret;
 	}
 	if (ret_len != len) {
 		printk(KERN_ERR "%s, RB full, no space to receive. Dropping packet",__func__);
