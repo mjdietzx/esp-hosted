@@ -758,6 +758,13 @@ static int esp_probe(struct sdio_func *func,
 	if (!tx_thread)
 		printk (KERN_ERR "Failed to create esp32_sdio TX thread\n");
 
+	ret = esp_serial_init((void *) context->adapter);
+	if (ret != 0) {
+		esp_remove(func);
+		printk(KERN_ERR "Error initialising serial interface\n");
+		return ret;
+	}
+
 	ret = esp_add_card(context->adapter);
 	if (ret) {
 		esp_remove(func);
