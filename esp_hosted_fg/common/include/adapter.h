@@ -17,7 +17,7 @@
 
 /* Protobuf related info */
 /* Endpoints registered must have same string length */
-#define CTRL_EP_NAME_RESP                         "ctrlResp"
+#define CTRL_EP_NAME_RESP                         "control" // maintain full compatibility with ESP
 #define CTRL_EP_NAME_EVENT                        "ctrlEvnt"
 
 struct esp_payload_header {
