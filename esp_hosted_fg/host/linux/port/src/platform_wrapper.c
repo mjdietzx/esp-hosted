@@ -491,6 +491,10 @@ uint8_t * serial_drv_read(struct serial_drv_handle_t *serial_drv_handle,
 	uint8_t init_read_buf[init_read_len];
 	uint8_t *buf = NULL;
 	uint32_t buf_len = 0;
+
+	struct timeval timeout;
+	fd_set read_fds;
+
 	/* Any of `CTRL_EP_NAME_EVENT` and `CTRL_EP_NAME_RESP` could be used,
 	 * as both have same strlen in adapter.h */
 
@@ -517,6 +521,19 @@ uint8_t * serial_drv_read(struct serial_drv_handle_t *serial_drv_handle,
 
 	total_read_len = 0;
 	do {
+		FD_ZERO(&read_fds);
+		FD_SET(serial_drv_handle->file_desc, &read_fds);
+		timeout.tv_sec = 5; // 5 seconds timeout
+		timeout.tv_usec = 0;
+		int ret_select = select(serial_drv_handle->file_desc + 1, &read_fds, NULL, NULL, &timeout);
+		if (ret_select < 0) {
+			perror("select: ");
+			goto free_bufs;
+		} else if (ret_select == 0) {
+			printf("Timeout reached while waiting for data\n");
+			goto free_bufs;
+		}
+
 		count = read(serial_drv_handle->file_desc,
 				(init_read_buf+total_read_len), (init_read_len-total_read_len));
 		if (count <= 0) {
@@ -548,6 +565,19 @@ uint8_t * serial_drv_read(struct serial_drv_handle_t *serial_drv_handle,
 
 	total_read_len = 0;
 	do {
+		FD_ZERO(&read_fds);
+		FD_SET(serial_drv_handle->file_desc, &read_fds);
+		timeout.tv_sec = 5; // 5 seconds timeout
+		timeout.tv_usec = 0;
+		int ret_select = select(serial_drv_handle->file_desc + 1, &read_fds, NULL, NULL, &timeout);
+		if (ret_select < 0) {
+			perror("select: ");
+			goto free_bufs;
+		} else if (ret_select == 0) {
+			printf("Timeout reached while waiting for data\n");
+			goto free_bufs;
+		}
+
 		count = read(serial_drv_handle->file_desc,
 				(buf+total_read_len), (buf_len-total_read_len));
 		if (count <= 0) {
